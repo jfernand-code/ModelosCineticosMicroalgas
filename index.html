@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Modelos Cinéticos</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f4f4f9; }
+        .container { max-width: 800px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .formula-display { background: #eee; padding: 15px; border-radius: 5px; margin: 20px 0; min-height: 50px; text-align: center; }
+        .input-group { margin-bottom: 10px; }
+        label { display: inline-block; width: 100px; font-weight: bold; }
+        input { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Modelos Cinéticos de Microalgas</h1>
+    
+    <div class="input-group">
+        <label>Modelo:</label>
+        <select id="modeloSelect" onchange="actualizarInterfaz()">
+            <option value="molina">Molina y cols.</option>
+            <option value="bannister">Bannister</option>
+            <option value="camacho">Camacho-Rubio</option>
+        </select>
+    </div>
+
+    <div class="formula-display" id="formulaLaTeX">
+        $$\mu = \dots$$
+    </div>
+
+    <div id="inputs">
+        <div class="input-group"><label>I (Luz):</label> <input type="number" id="input_I" value="100"></div>
+        <div class="input-group"><label>μ_max:</label> <input type="number" id="input_mumax" value="0.05"></div>
+        <div class="input-group"><label>I_k:</label> <input type="number" id="input_Ik" value="50"></div>
+        <div class="input-group"><label>n:</label> <input type="number" id="input_n" value="2"></div>
+        
+        <div id="extraParams" class="hidden">
+            <div class="input-group"><label>α:</label> <input type="number" id="input_alpha" value="0.1"></div>
+            <div class="input-group"><label>κ:</label> <input type="number" id="input_kappa" value="0.01"></div>
+        </div>
+    </div>
+
+    <button onclick="calcular()">Calcular μ</button>
+    <h2 id="resultado">Resultado: -</h2>
+</div>
+
+<script>
+    const formulas = {
+        molina: '$$\\mu=\\frac{\\mu_{max}\\cdot I^n}{I_k^n+I^n}$$',
+        bannister: '$$\\mu=\\frac{\\mu_{max}\\cdot I}{\\left( I_k^n+I^n \\right)^{\\frac{1}{n}}}$$',
+        camacho: '$$\\mu=\\frac{\\mu_{max}\\cdot I}{2\\cdot \\alpha}\\left[ 1+\\kappa+\\frac{\\alpha}{I}-\\sqrt{\\left( 1-\\kappa-\\frac{\\alpha}{I} \\right)^2+4\\cdot\\kappa} \\right]$$'
+    };
+
+    function actualizarInterfaz() {
+        const modelo = document.getElementById('modeloSelect').value;
+        const display = document.getElementById('formulaLaTeX');
+        const extras = document.getElementById('extraParams');
+        
+        // Actualizar la fórmula visual
+        display.innerHTML = formulas[modelo];
+        MathJax.typeset(); // Esto fuerza a MathJax a re-dibujar
+
+        // Mostrar/Ocultar parámetros de Camacho-Rubio
+        if (modelo === 'camacho') extras.classList.remove('hidden');
+        else extras.classList.add('hidden');
+    }
+
+    function calcular() {
+        const I = parseFloat(document.getElementById('input_I').value);
+        const mumax = parseFloat(document.getElementById('input_mumax').value);
+        const Ik = parseFloat(document.getElementById('input_Ik').value);
+        const n = parseFloat(document.getElementById('input_n').value);
+        const modelo = document.getElementById('modeloSelect').value;
+        
+        let mu = 0;
+        if (modelo === 'molina') {
+            mu = (mumax * Math.pow(I, n)) / (Math.pow(Ik, n) + Math.pow(I, n));
+        } else if (modelo === 'bannister') {
+            mu = (mumax * I) / Math.pow(Math.pow(Ik, n) + Math.pow(I, n), 1/n);
+        } else if (modelo === 'camacho') {
+            const a = parseFloat(document.getElementById('input_alpha').value);
+            const k = parseFloat(document.getElementById('input_kappa').value);
+            const term1 = 1 + k + (a/I);
+            const term2 = Math.sqrt(Math.pow(1 - k - (a/I), 2) + 4*k);
+            mu = ((mumax * I) / (2 * a)) * (term1 - term2);
+        }
+        
+        document.getElementById('resultado').innerText = "Resultado: μ = " + mu.toFixed(4);
+    }
+
+    // Inicializar
+    actualizarInterfaz();
+</script>
+
+</body>
+</html>
